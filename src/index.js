@@ -835,12 +835,50 @@ export default class Gantt {
         }
     }
 
+    set_scroll_today() {
+        const today = date_utils.today();
+        const today_date = date_utils.format(today, 'D MMMM YYYY');
+        const $today = document.getElementById(today_date.replaceAll(' ', '_'));
+        if ($today) {
+            $today.scrollIntoView();
+        }
+    }
+
     bind_grid_click() {
         $.on(
             this.$svg,
             this.options.popup_trigger,
             '.grid-row, .grid-header',
-            () => {
+            (e, element) => {
+                // If it's a grid row (not header), scroll to task
+                if (element.classList.contains('grid-row')) {
+                    // Get the index of the clicked row
+                    const rows = Array.from(this.$svg.querySelectorAll('.grid-row'));
+                    const rowIndex = rows.indexOf(element);
+                    
+                    // Get corresponding task
+                    const task = this.tasks[rowIndex];
+                    if (task) {
+                        // Calculate scroll position based on task start date
+                        const hours_before_task = date_utils.diff(
+                            task._start,
+                            this.gantt_start,
+                            'hour'
+                        );
+
+                        const scroll_pos =
+                            (hours_before_task / this.options.step) *
+                            this.options.column_width -
+                            this.options.column_width;
+
+                        // Smooth scroll to position
+                        this.$container.scrollTo({
+                            left: scroll_pos,
+                            behavior: 'smooth'
+                        });
+                    }
+                }
+
                 this.unselect_all();
                 this.hide_popup();
             }
